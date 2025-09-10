@@ -117,7 +117,7 @@ void	add_vector2d(t_vector2D *vec, float x, float y)
 // HAY QUE REDUCIR EL TAMAÑO DE ESTA FUNCIÓN O DIVIDIRLA EN MÁS FUNCIONES
 void	move_player(t_player *player)
 {
-	const int	speed = 5;
+	const int	speed = 2;
 	const float	angle_speed = 0.05f;
 
 	if (player->left_pressed == TRUE)
@@ -142,28 +142,43 @@ void	move_player(t_player *player)
 			-(cos(player->angle) * speed));
 }
 
+void	raycast(t_vector2D position, float angle, t_game *game)
+{
+	const float angle_sin = sin(angle);
+	const float angle_cos = cos(angle);
+
+	position.x += 10;
+	position.y += 10;
+	while (!touch(position))
+	{
+		put_pixel(game, position, 0x00FF0000);
+		position.x -= angle_cos;
+		position.y -= angle_sin;
+	}
+}
+
 // FUNCIÓN A MODIFICAR EN EL FUTURO
 int	draw_loop(t_game *game)
 {
-	t_vector2D	ray_pixel_pos;
-	float		cos_angle;
-	float		sin_angle;
+	float	angle;
+	int		counter;
+	float	column;
 
 	move_player(&game->player);
 	clear_image(game);
 	draw_map(game);
 	draw_square(game, game->player.position, 20, 0x0000FF00);
 	// printf("%.2f\n", game->player.angle * 180 / M_PI);
-	ray_pixel_pos = game->player.position;
-	ray_pixel_pos.x += 10;
-	ray_pixel_pos.y += 10;
-	cos_angle = cos(game->player.angle);
-	sin_angle = sin(game->player.angle);
-	while (!touch(ray_pixel_pos))
+	angle = game->player.angle - (M_PI / 6);
+	if (angle < 0)
+		angle += 2 * M_PI;
+	column = M_PI / 3 / WIDTH;
+	counter = 0;
+	while (counter < WIDTH)
 	{
-		put_pixel(game, ray_pixel_pos, 0x00FF0000);
-		ray_pixel_pos.x -= cos_angle;
-		ray_pixel_pos.y -= sin_angle;
+		raycast(game->player.position, angle, game);
+		angle += column;
+		counter++;
 	}
 	mlx_put_image_to_window(game->mlx, game->window, game->image, 0, 0);
 	return (0);
