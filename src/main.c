@@ -117,8 +117,8 @@ void	add_vector2d(t_vector2D *vec, float x, float y)
 // HAY QUE REDUCIR EL TAMAÑO DE ESTA FUNCIÓN O DIVIDIRLA EN MÁS FUNCIONES
 void	move_player(t_player *player)
 {
-	const int	speed = 2;
-	const float	angle_speed = 0.05f;
+	const float	speed = 0.02f;
+	const float	angle_speed = 0.01f;
 
 	if (player->left_pressed == TRUE)
 		player->angle -= angle_speed;
@@ -129,17 +129,17 @@ void	move_player(t_player *player)
 	else if (player->angle < 0)
 		player->angle = 2 * M_PI - player->angle;
 	if (player->w_pressed == TRUE)
-		add_vector2d(&player->position, -(cos(player->angle) * speed),
-			-(sin(player->angle) * speed));
+		add_vector2d(&player->position, (cos(player->angle) * speed),
+			(sin(player->angle) * speed));
 	if (player->a_pressed == TRUE)
-		add_vector2d(&player->position, -(sin(player->angle) * speed),
-			cos(player->angle) * speed);
+		add_vector2d(&player->position, (sin(player->angle) * speed),
+			-cos(player->angle) * speed);
 	if (player->s_pressed == TRUE)
-		add_vector2d(&player->position, cos(player->angle) * speed,
-			sin(player->angle) * speed);
+		add_vector2d(&player->position, -cos(player->angle) * speed,
+			-sin(player->angle) * speed);
 	if (player->d_pressed == TRUE)
-		add_vector2d(&player->position, sin(player->angle) * speed,
-			-(cos(player->angle) * speed));
+		add_vector2d(&player->position, -sin(player->angle) * speed,
+			(cos(player->angle) * speed));
 }
 
 float	distance(t_vector2D p1, t_vector2D p2)
@@ -151,29 +151,78 @@ float	distance(t_vector2D p1, t_vector2D p2)
 	return (sqrt(vec.x * vec.x + vec.y * vec.y));
 }
 
-void	raycast(t_vector2D position, float angle, int column, t_game *game)
+void	raycast(float angle, int column, t_game *game)
 {
-	const float angle_sin = sin(angle);
-	const float angle_cos = cos(angle);
+	const float	angle_cos = cosf(angle);
+	const float	angle_sin = sinf(angle);
+	t_vector2D	cell;
+	t_vector2D	delta;
+	t_vector2D	side_dist;
+	t_vector2D	step;
+	int			side;
+	float		dist;
 
-	position.x += 10;
-	position.y += 10;
-	while (!touch(position))
+	cell.x = trunc(game->player.position.x);
+	cell.y = trunc(game->player.position.y);
+	delta.x = fabsf(1.0f / angle_cos);
+	delta.y = fabsf(1.0f / angle_sin);
+	if (angle_cos < 0)
 	{
-		// put_pixel(game, position, 0x00FF0000);
-		position.x -= angle_cos;
-		position.y -= angle_sin;
+		step.x = -1;
+		side_dist.x = (game->player.position.x - cell.x) * delta.x;
 	}
+	else
+	{
+		step.x = 1;
+		side_dist.x = (cell.x + 1.0f - game->player.position.x) * delta.x;
+	}
+	if (angle_sin < 0)
+	{
+		step.y = -1;
+		side_dist.y = (game->player.position.y - cell.y) * delta.y;
+	}
+	else
+	{
+		step.y = 1;
+		side_dist.y = (cell.y + 1.0f - game->player.position.y) * delta.y;
+	}
+	while (g_map[(int)cell.y][(int)cell.x] != '1')
+	{
+		if (side_dist.x < side_dist.y)
+		{
+			side_dist.x += delta.x;
+			cell.x += step.x;
+			side = 0;
+		}
+		else
+		{
+			side_dist.y += delta.y;
+			cell.y += step.y;
+			side = 1;
+		}
+	}
+	if (side == 0)
+		dist = (cell.x - game->player.position.x + (1 - step.x) / 2) / angle_cos;
+	else
+		dist = (cell.y - game->player.position.y + (1 - step.y) / 2) / angle_sin;
+	float ray_angle_diff = angle - game->player.angle;
+	dist *= cosf(ray_angle_diff);
 
-	const float	dist = distance(game->player.position, position);
-	const float	height = (BLOCK_SIZE / dist) * ((float)WIDTH / 2);
-	int			current;
-	int			end;
 
-	current = (HEIGHT - height) / 2;
-	end = current + height;
-	while (current < end)
-		put_pixel(game, (t_vector2D){column, current++}, 0x00808080);
+	float	lineHeight;
+	int		start;
+	int		end;
+
+	lineHeight = (1.0f / dist) * (WIDTH / 2.0f);
+	start = (int)truncf((HEIGHT - lineHeight) / 2.0f);
+	end = (int)truncf(start + lineHeight);
+	if (start < 0)
+		start = 0;
+	if (end >= HEIGHT)
+		end = HEIGHT - 1;
+	// printf("%d, %d\n", start, end);
+	while (start < end)
+		put_pixel(game, (t_vector2D){column, start++}, 0x00808080); // gris
 }
 
 // FUNCIÓN A MODIFICAR EN EL FUTURO
@@ -195,7 +244,7 @@ int	draw_loop(t_game *game)
 	column = 0;
 	while (column < WIDTH)
 	{
-		raycast(game->player.position, angle, column, game);
+		raycast(angle, column, game);
 		angle += fraction;
 		column++;
 	}
@@ -205,8 +254,8 @@ int	draw_loop(t_game *game)
 
 void	init_player(t_player *player)
 {
-	player->position.x = 110.0f;
-	player->position.y = 110.0f;
+	player->position.x = 2.3f;
+	player->position.y = 2.3f;
 	player->angle = M_PI_2;
 	player->w_pressed = FALSE;
 	player->a_pressed = FALSE;
