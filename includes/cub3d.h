@@ -47,16 +47,39 @@ typedef struct s_player
 	t_bool		right_pressed;
 }	t_player;
 
+typedef struct s_texture
+{
+	void	*mlx_ptr;
+	int		width;
+	int		height;
+	char	*data;
+	int		bpp;
+	int		size_line;
+	int		endian;
+}	t_texture;
+
+typedef struct s_window
+{
+	void		*mlx_ptr;
+	int			width;
+	int			height;
+	t_texture	background;
+}	t_window;
+
+typedef struct s_program
+{
+	void		*mlx_ptr;
+	t_window	window;
+}	t_program;
+
 typedef struct s_game
 {
-	void		*mlx;
-	void		*window;
-	void		*image;
-	char		*data;
-	int			bpp;
-	int			size_line;
-	int			endian;
+	t_program	program;
 	t_player	player;
+	t_texture	no_wall_texture;
+	t_texture	we_wall_texture;
+	t_texture	ea_wall_texture;
+	t_texture	so_wall_texture;
 }	t_game;
 
 #endif

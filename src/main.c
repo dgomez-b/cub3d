@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 char	g_map[8][10] = {
 {'1', '1', '1', '1', '1', '1', '1', '1', '1', '1'},
@@ -21,79 +22,6 @@ void	freedom(void **ptr)
 	{
 		free(*ptr);
 		*ptr = (void *)0;
-	}
-}
-
-// PERMITE TRANSPARENCIA
-void	put_pixel(t_game *game, t_vector2D position, int color)
-{
-	char	*dst;
-
-	if (position.x >= WIDTH || position.x < 0
-		|| position.y >= HEIGHT || position.y < 0)
-		return ;
-	dst = game->data;
-	dst += (int)position.y * game->size_line;
-	dst += (int)position.x * (game->bpp / 8);
-	*(unsigned int *)dst = color;
-}
-
-void	clear_image(t_game *game)
-{
-	t_vector2D	position;
-
-	position.x = 0.0f;
-	while (position.x < WIDTH)
-	{
-		position.y = 0.0f;
-		while (position.y < HEIGHT)
-		{
-			put_pixel(game, position, 0x00000000);
-			position.y++;
-		}
-		position.x++;
-	}
-}
-
-// FUNCIÓN TEMPORAL
-void	draw_square(t_game *game, t_vector2D position, unsigned int size,
-	int color)
-{
-	unsigned int	x;
-	unsigned int	y;
-
-	x = 0;
-	while (x < size)
-	{
-		y = 0;
-		while (y < size)
-		{
-			put_pixel(game, (t_vector2D){position.x + x, position.y + y},
-				color);
-			y++;
-		}
-		x++;
-	}
-}
-
-// FUNCIÓN TEMPORAL
-void	draw_map(t_game *game)
-{
-	unsigned int	x;
-	unsigned int	y;
-
-	y = 0;
-	while (y < 8)
-	{
-		x = 0;
-		while (x < 10)
-		{
-			if (g_map[y][x] == '1')
-				draw_square(game, (t_vector2D){0 + (BLOCK_SIZE * x),
-					0 + (BLOCK_SIZE * y)}, BLOCK_SIZE, 0x00FFFFFF);
-			x++;
-		}
-		y++;
 	}
 }
 
@@ -142,6 +70,84 @@ void	move_player(t_player *player)
 			(cos(player->angle) * speed));
 }
 
+void	init_player(t_player *player)
+{
+	player->position.x = 2.5f;
+	player->position.y = 2.5f;
+	player->angle = 3 * M_PI / 2;
+	player->w_pressed = FALSE;
+	player->a_pressed = FALSE;
+	player->s_pressed = FALSE;
+	player->d_pressed = FALSE;
+	player->left_pressed = FALSE;
+	player->right_pressed = FALSE;
+}
+
+int	key_press(int keycode, t_player *player)
+{
+	if (keycode == W)
+		player->w_pressed = TRUE;
+	if (keycode == A)
+		player->a_pressed = TRUE;
+	if (keycode == S)
+		player->s_pressed = TRUE;
+	if (keycode == D)
+		player->d_pressed = TRUE;
+	if (keycode == LEFT)
+		player->left_pressed = TRUE;
+	if (keycode == RIGHT)
+		player->right_pressed = TRUE;
+	return (0);
+}
+
+int	key_release(int keycode, t_player *player)
+{
+	if (keycode == W)
+		player->w_pressed = FALSE;
+	if (keycode == A)
+		player->a_pressed = FALSE;
+	if (keycode == S)
+		player->s_pressed = FALSE;
+	if (keycode == D)
+		player->d_pressed = FALSE;
+	if (keycode == LEFT)
+		player->left_pressed = FALSE;
+	if (keycode == RIGHT)
+		player->right_pressed = FALSE;
+	return (0);
+}
+
+// PERMITE TRANSPARENCIA
+void	put_pixel(t_texture *texture, t_vector2D position, int color)
+{
+	char	*dst;
+
+	if (position.x >= texture->width || position.x < 0
+		|| position.y >= texture->height || position.y < 0)
+		return ;
+	dst = texture->data;
+	dst += (int)position.y * texture->size_line;
+	dst += (int)position.x * (texture->bpp / 8);
+	*(unsigned int *)dst = color;
+}
+
+void	clear_texture(t_texture *texture)
+{
+	t_vector2D	position;
+
+	position.x = 0.0f;
+	while (position.x < WIDTH)
+	{
+		position.y = 0.0f;
+		while (position.y < HEIGHT)
+		{
+			put_pixel(texture, position, 0x00000000);
+			position.y++;
+		}
+		position.x++;
+	}
+}
+
 float	distance(t_vector2D p1, t_vector2D p2)
 {
 	t_vector2D	vec;
@@ -161,6 +167,7 @@ void	raycast(float angle, int column, t_game *game)
 	t_vector2D	step;
 	int			side;
 	float		dist;
+	float		wall_x;
 
 	cell.x = trunc(game->player.position.x);
 	cell.y = trunc(game->player.position.y);
@@ -209,8 +216,12 @@ void	raycast(float angle, int column, t_game *game)
 		dist = (cell.x - game->player.position.x + (1 - step.x) / 2) / angle_cos;
 	else
 		dist = (cell.y - game->player.position.y + (1 - step.y) / 2) / angle_sin;
-	float ray_angle_diff = angle - game->player.angle;
-	dist *= cosf(ray_angle_diff);
+	dist *= cosf(angle - game->player.angle);
+	if (side % 2 == 0)
+		wall_x = game->player.position.y + dist * sinf(angle);
+	else
+		wall_x = game->player.position.x + dist * cosf(angle);
+	wall_x -= floorf(wall_x);
 
 
 	float	lineHeight;
@@ -228,15 +239,66 @@ void	raycast(float angle, int column, t_game *game)
 	while (start < end)
 	{
 		if (side == 0)
-			put_pixel(game, (t_vector2D){column, start++}, 0x0032CD32); // LimeGreen (WEST)
+			put_pixel(&game->program.window.background,
+					(t_vector2D){column, start++}, 0x0032CD32); // LimeGreen (WEST)
 		else if (side == 1)
-			put_pixel(game, (t_vector2D){column, start++}, 0x004682B4); // SteelBlue (NORTH)
+			put_pixel(&game->program.window.background,
+					(t_vector2D){column, start++}, 0x004682B4); // SteelBlue (NORTH)
 		else if (side == 2)
-			put_pixel(game, (t_vector2D){column, start++}, 0x00DC143C); // Crimson (EAST)
+			put_pixel(&game->program.window.background,
+					(t_vector2D){column, start++}, 0x00DC143C); // Crimson (EAST)
 		else
-			put_pixel(game, (t_vector2D){column, start++}, 0x00BA55D3); // MediumOrchid (SOUTH)
+			put_pixel(&game->program.window.background,
+					(t_vector2D){column, start++}, 0x00BA55D3); // MediumOrchid (SOUTH)
 	}
 }
+
+// --- SEGMENTO DE CODIGO TEMPORAL (O PARA EL BONUS DEL MINIMAPA)
+
+// FUNCIÓN TEMPORAL
+
+// void	draw_square(t_texture *texture, t_vector2D position, unsigned int size,
+// 	int color)
+// {
+// 	unsigned int	x;
+// 	unsigned int	y;
+
+// 	x = 0;
+// 	while (x < size)
+// 	{
+// 		y = 0;
+// 		while (y < size)
+// 		{
+// 			put_pixel(texture, (t_vector2D){position.x + x, position.y + y},
+// 				color);
+// 			y++;
+// 		}
+// 		x++;
+// 	}
+// }
+
+// // FUNCIÓN TEMPORAL
+// void	draw_map(t_texture *texture)
+// {
+// 	unsigned int	x;
+// 	unsigned int	y;
+
+// 	y = 0;
+// 	while (y < 8)
+// 	{
+// 		x = 0;
+// 		while (x < 10)
+// 		{
+// 			if (g_map[y][x] == '1')
+// 				draw_square(texture, (t_vector2D){0 + (40 * x),
+// 					0 + (40 * y)}, 40, 0x00FFFFFF);
+// 			x++;
+// 		}
+// 		y++;
+// 	}
+// }
+
+// --- FIN SEGMENTO
 
 // FUNCIÓN A MODIFICAR EN EL FUTURO
 int	draw_loop(t_game *game)
@@ -246,9 +308,9 @@ int	draw_loop(t_game *game)
 	float	fraction;
 
 	move_player(&game->player);
-	clear_image(game);
-	// draw_map(game);
-	// draw_square(game, game->player.position, 20, 0x0000FF00);
+	clear_texture(&game->program.window.background);
+	// draw_map(&game->program.window.background);
+	// draw_square(&game->program.window.background, game->player.position, 20, 0x0000FF00);
 	// printf("%.2f\n", game->player.angle * 180 / M_PI);
 	angle = game->player.angle - (M_PI / 6);
 	if (angle < 0)
@@ -261,75 +323,79 @@ int	draw_loop(t_game *game)
 		angle += fraction;
 		column++;
 	}
-	mlx_put_image_to_window(game->mlx, game->window, game->image, 0, 0);
+	mlx_put_image_to_window(game->program.mlx_ptr, game->program.window.mlx_ptr,
+			game->program.window.background.mlx_ptr, 0, 0);
 	return (0);
 }
 
-void	init_player(t_player *player)
+int	close_program(t_program *program)
 {
-	player->position.x = 2.3f;
-	player->position.y = 2.3f;
-	player->angle = M_PI_2;
-	player->w_pressed = FALSE;
-	player->a_pressed = FALSE;
-	player->s_pressed = FALSE;
-	player->d_pressed = FALSE;
-	player->left_pressed = FALSE;
-	player->right_pressed = FALSE;
-}
-
-int	key_press(int keycode, t_player *player)
-{
-	if (keycode == W)
-		player->w_pressed = TRUE;
-	if (keycode == A)
-		player->a_pressed = TRUE;
-	if (keycode == S)
-		player->s_pressed = TRUE;
-	if (keycode == D)
-		player->d_pressed = TRUE;
-	if (keycode == LEFT)
-		player->left_pressed = TRUE;
-	if (keycode == RIGHT)
-		player->right_pressed = TRUE;
-	return (0);
-}
-
-int	key_release(int keycode, t_player *player)
-{
-	if (keycode == W)
-		player->w_pressed = FALSE;
-	if (keycode == A)
-		player->a_pressed = FALSE;
-	if (keycode == S)
-		player->s_pressed = FALSE;
-	if (keycode == D)
-		player->d_pressed = FALSE;
-	if (keycode == LEFT)
-		player->left_pressed = FALSE;
-	if (keycode == RIGHT)
-		player->right_pressed = FALSE;
-	return (0);
-}
-
-void	init_game(t_game *game)
-{
-	game->mlx = mlx_init();
-	init_player(&game->player);
-	game->window = mlx_new_window(game->mlx, WIDTH, HEIGHT, "cub3d");
-	game->image = mlx_new_image(game->mlx, WIDTH, HEIGHT);
-	game->data = mlx_get_data_addr(game->image, &game->bpp, &game->size_line,
-			&game->endian);
-	clear_image(game);
-	mlx_put_image_to_window(game->mlx, game->window, game->image, 0, 0);
+	// write(STDOUT_FILENO, "CIERRE DEL PROGRAMA\n", 20); // PARA DEBUG
+	mlx_destroy_image(program->mlx_ptr, program->window.background.mlx_ptr);
+	mlx_destroy_window(program->mlx_ptr, program->window.mlx_ptr);
+	exit (0);
 }
 
 int	close_game(t_game *game)
 {
-	mlx_destroy_image(game->mlx, game->image);
-	mlx_destroy_window(game->mlx, game->window);
-	// freedom(game->mlx);
+	// write(STDOUT_FILENO, "CIERRE DEL JUEGO\n", 17); // PARA DEBUG
+	mlx_destroy_image(game->program.mlx_ptr, game->no_wall_texture.mlx_ptr);
+	mlx_destroy_image(game->program.mlx_ptr, game->we_wall_texture.mlx_ptr);
+	mlx_destroy_image(game->program.mlx_ptr, game->ea_wall_texture.mlx_ptr);
+	mlx_destroy_image(game->program.mlx_ptr, game->so_wall_texture.mlx_ptr);
+	close_program(&game->program);
 	exit(0);
+}
+
+void	init_window(t_program *program, t_window *window)
+{
+	t_texture	background;
+
+	program->window.width = 1080;
+	program->window.height = 720;
+	background.width = 1080;
+	background.height = 720;
+	window->mlx_ptr = mlx_new_window(program->mlx_ptr,
+			window->width, window->height, "cub3d");
+	background.mlx_ptr = mlx_new_image(program->mlx_ptr, background.width,
+			background.height);
+	background.data = mlx_get_data_addr(background.mlx_ptr, &background.bpp,
+			&background.size_line, &background.endian);
+	window->background = background;
+	clear_texture(&window->background);
+	mlx_put_image_to_window(program->mlx_ptr, window->mlx_ptr,
+			background.mlx_ptr, 0, 0);
+}
+
+void	init_program(t_program *program)
+{
+	program->mlx_ptr = mlx_init();
+	init_window(program, &program->window);
+	mlx_hook(program->window.mlx_ptr, 17, 1L << 0, close_program, program);
+}
+
+void	load_texture(t_program *program, t_texture *texture, char *filename)
+{
+	texture->mlx_ptr = mlx_xpm_file_to_image(program->mlx_ptr, filename,
+			&texture->width, &texture->height);
+	texture->data = mlx_get_data_addr(program->mlx_ptr, &texture->bpp,
+			&texture->size_line, &texture->endian);
+}
+
+void	init_game(t_game *game)
+{
+	init_player(&game->player);
+	init_program(&game->program);
+	load_texture(&game->program, &game->no_wall_texture, "media/wall.xpm");
+	load_texture(&game->program, &game->we_wall_texture, "media/stone.xpm");
+	load_texture(&game->program, &game->ea_wall_texture, "media/wall.xpm");
+	load_texture(&game->program, &game->so_wall_texture, "media/stone.xpm");
+	mlx_hook(game->program.window.mlx_ptr, 2, 1L << 0, key_press,
+			&game->player);
+	mlx_hook(game->program.window.mlx_ptr, 3, 1L << 1, key_release,
+			&game->player);
+	mlx_hook(game->program.window.mlx_ptr, 17, 1L << 0, close_game, game);
+	mlx_loop_hook(game->program.mlx_ptr, draw_loop, game);
 }
 
 int	main(void)
@@ -337,11 +403,6 @@ int	main(void)
 	t_game	game;
 
 	init_game(&game);
-	mlx_loop_hook(game.mlx, draw_loop, &game);
-	draw_loop(&game);
-	mlx_hook(game.window, 2, 1L << 0, key_press, &game.player);
-	mlx_hook(game.window, 3, 1L << 1, key_release, &game.player);
-	mlx_hook(game.window, 17, 1L << 0, close_game, &game);
-	mlx_loop(game.mlx);
+	mlx_loop(game.program.mlx_ptr);
 	return (0);
 }
