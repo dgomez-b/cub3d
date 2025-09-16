@@ -193,15 +193,19 @@ void	raycast(float angle, int column, t_game *game)
 			side_dist.x += delta.x;
 			cell.x += step.x;
 			side = 0;
+			if (angle_cos > 0)
+				side += 2;
 		}
 		else
 		{
 			side_dist.y += delta.y;
 			cell.y += step.y;
 			side = 1;
+			if (angle_sin > 0)
+				side += 2;
 		}
 	}
-	if (side == 0)
+	if (side % 2 == 0)
 		dist = (cell.x - game->player.position.x + (1 - step.x) / 2) / angle_cos;
 	else
 		dist = (cell.y - game->player.position.y + (1 - step.y) / 2) / angle_sin;
@@ -222,7 +226,16 @@ void	raycast(float angle, int column, t_game *game)
 		end = HEIGHT - 1;
 	// printf("%d, %d\n", start, end);
 	while (start < end)
-		put_pixel(game, (t_vector2D){column, start++}, 0x00808080); // gris
+	{
+		if (side == 0)
+			put_pixel(game, (t_vector2D){column, start++}, 0x0032CD32); // LimeGreen (WEST)
+		else if (side == 1)
+			put_pixel(game, (t_vector2D){column, start++}, 0x004682B4); // SteelBlue (NORTH)
+		else if (side == 2)
+			put_pixel(game, (t_vector2D){column, start++}, 0x00DC143C); // Crimson (EAST)
+		else
+			put_pixel(game, (t_vector2D){column, start++}, 0x00BA55D3); // MediumOrchid (SOUTH)
+	}
 }
 
 // FUNCIÓN A MODIFICAR EN EL FUTURO
