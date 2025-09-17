@@ -157,102 +157,6 @@ float	distance(t_vector2D p1, t_vector2D p2)
 	return (sqrt(vec.x * vec.x + vec.y * vec.y));
 }
 
-void	raycast(float angle, int column, t_game *game)
-{
-	const float	angle_cos = cosf(angle);
-	const float	angle_sin = sinf(angle);
-	t_vector2D	cell;
-	t_vector2D	delta;
-	t_vector2D	side_dist;
-	t_vector2D	step;
-	int			side;
-	float		dist;
-	float		wall_x;
-
-	cell.x = trunc(game->player.position.x);
-	cell.y = trunc(game->player.position.y);
-	delta.x = fabsf(1.0f / angle_cos);
-	delta.y = fabsf(1.0f / angle_sin);
-	if (angle_cos < 0)
-	{
-		step.x = -1;
-		side_dist.x = (game->player.position.x - cell.x) * delta.x;
-	}
-	else
-	{
-		step.x = 1;
-		side_dist.x = (cell.x + 1.0f - game->player.position.x) * delta.x;
-	}
-	if (angle_sin < 0)
-	{
-		step.y = -1;
-		side_dist.y = (game->player.position.y - cell.y) * delta.y;
-	}
-	else
-	{
-		step.y = 1;
-		side_dist.y = (cell.y + 1.0f - game->player.position.y) * delta.y;
-	}
-	while (g_map[(int)cell.y][(int)cell.x] != '1')
-	{
-		if (side_dist.x < side_dist.y)
-		{
-			side_dist.x += delta.x;
-			cell.x += step.x;
-			side = 0;
-			if (angle_cos > 0)
-				side += 2;
-		}
-		else
-		{
-			side_dist.y += delta.y;
-			cell.y += step.y;
-			side = 1;
-			if (angle_sin > 0)
-				side += 2;
-		}
-	}
-	if (side % 2 == 0)
-		dist = (cell.x - game->player.position.x + (1 - step.x) / 2) / angle_cos;
-	else
-		dist = (cell.y - game->player.position.y + (1 - step.y) / 2) / angle_sin;
-	dist *= cosf(angle - game->player.angle);
-	if (side % 2 == 0)
-		wall_x = game->player.position.y + dist * sinf(angle);
-	else
-		wall_x = game->player.position.x + dist * cosf(angle);
-	wall_x -= floorf(wall_x);
-
-
-	float	lineHeight;
-	int		start;
-	int		end;
-
-	lineHeight = (1.0f / dist) * (WIDTH / 2.0f);
-	start = (int)truncf((HEIGHT - lineHeight) / 2.0f);
-	end = (int)truncf(start + lineHeight);
-	if (start < 0)
-		start = 0;
-	if (end >= HEIGHT)
-		end = HEIGHT - 1;
-	// printf("%d, %d\n", start, end);
-	while (start < end)
-	{
-		if (side == 0)
-			put_pixel(&game->program.window.background,
-					(t_vector2D){column, start++}, 0x0032CD32); // LimeGreen (WEST)
-		else if (side == 1)
-			put_pixel(&game->program.window.background,
-					(t_vector2D){column, start++}, 0x004682B4); // SteelBlue (NORTH)
-		else if (side == 2)
-			put_pixel(&game->program.window.background,
-					(t_vector2D){column, start++}, 0x00DC143C); // Crimson (EAST)
-		else
-			put_pixel(&game->program.window.background,
-					(t_vector2D){column, start++}, 0x00BA55D3); // MediumOrchid (SOUTH)
-	}
-}
-
 // --- SEGMENTO DE CODIGO TEMPORAL (O PARA EL BONUS DEL MINIMAPA)
 
 // FUNCIÓN TEMPORAL
@@ -301,27 +205,111 @@ void	raycast(float angle, int column, t_game *game)
 // --- FIN SEGMENTO
 
 // FUNCIÓN A MODIFICAR EN EL FUTURO
+
+void	raycast(float angle, int column, t_game *game)
+{
+	const t_vector2D	ray_dir = {cosf(angle), sinf(angle)};
+	t_vector2D			cell;
+	t_vector2D			side_dist;
+	const t_vector2D	delta_dist = {fabsf(1.0f / ray_dir.x),
+			fabsf(1.0f / ray_dir.y)};
+	t_vector2D			step;
+	int					side;
+	float				dist;
+
+	cell.x = (int)game->player.position.x;
+	cell.y = (int)game->player.position.y;
+	if (ray_dir.x < 0)
+	{
+		step.x = -1;
+		side_dist.x = (game->player.position.x - cell.x) * delta_dist.x;
+	}
+	else
+	{
+		step.x = 1;
+		side_dist.x = (cell.x + 1.0f - game->player.position.x) * delta_dist.x;
+	}
+	if (ray_dir.y < 0)
+	{
+		step.y = -1;
+		side_dist.y = (game->player.position.y - cell.y) * delta_dist.y;
+	}
+	else
+	{
+		step.y = 1;
+		side_dist.y = (cell.y + 1.0f - game->player.position.y) * delta_dist.y;
+	}
+	while (1)
+	{
+		if (g_map[(int)cell.y][(int)cell.x] == '1')
+			break ;
+		if (side_dist.x < side_dist.y)
+		{
+			side_dist.x += delta_dist.x;
+			cell.x += step.x;
+			side = 0;
+		}
+		else
+		{
+			side_dist.y += delta_dist.y;
+			cell.y += step.y;
+			side = 1;
+		}
+	}
+	if ((side == 0 && step.x == 1) || (side == 1 && step.y == 1))
+		side += 2;
+	if (side % 2 == 0)
+		dist = (cell.x - game->player.position.x + (1 - step.x) / 2.0f) / ray_dir.x;
+	else
+		dist = (cell.y - game->player.position.y + (1 - step.y) / 2.0f) / ray_dir.y;
+	dist *= cosf(angle - game->player.angle);
+
+	const int	wall_height = (int)(game->program.window.height / dist);
+	int			start;
+	int			end;
+	int			current;
+
+	start = (int)(-wall_height / 2 + game->program.window.height / 2);
+	if (start < 0)
+		start = 0;
+	end = (int)(wall_height / 2 + game->program.window.height / 2);
+	if (end > game->program.window.height)
+		end = (int)game->program.window.height - 1;
+	current = start;
+	while (current < end)
+	{
+		int	color;
+
+		if (side == 0)
+			color = 0x0032CD32;
+		else if (side == 1)
+			color = 0x004682B4;
+		else if (side == 2)
+			color = 0x00DC143C;
+		else
+			color = 0x00BA55D3;
+		put_pixel(&game->program.window.background,
+				(t_vector2D){column, current++}, color);
+	}
+}
+
 int	draw_loop(t_game *game)
 {
-	float	angle;
-	int		column;
-	float	fraction;
+	const float	fov = M_PI / 4;
+	float	ray_angle;
 
 	move_player(&game->player);
 	clear_texture(&game->program.window.background);
 	// draw_map(&game->program.window.background);
 	// draw_square(&game->program.window.background, game->player.position, 20, 0x0000FF00);
 	// printf("%.2f\n", game->player.angle * 180 / M_PI);
-	angle = game->player.angle - (M_PI / 6);
-	if (angle < 0)
-		angle += 2 * M_PI;
-	fraction = M_PI / 3 / WIDTH;
-	column = 0;
-	while (column < WIDTH)
+	for (int x = 0; x < game->program.window.width; x++)
 	{
-		raycast(angle, column, game);
-		angle += fraction;
-		column++;
+		ray_angle = game->player.angle - (fov / 2) + (x * (fov / game->program.window.width));
+		ray_angle = fmodf(ray_angle, 2 * M_PI);
+		if (ray_angle < 0)
+			ray_angle += 2 * M_PI;
+		raycast(ray_angle, x, game);
 	}
 	mlx_put_image_to_window(game->program.mlx_ptr, game->program.window.mlx_ptr,
 			game->program.window.background.mlx_ptr, 0, 0);
@@ -378,7 +366,7 @@ void	load_texture(t_program *program, t_texture *texture, char *filename)
 {
 	texture->mlx_ptr = mlx_xpm_file_to_image(program->mlx_ptr, filename,
 			&texture->width, &texture->height);
-	texture->data = mlx_get_data_addr(program->mlx_ptr, &texture->bpp,
+	texture->data = mlx_get_data_addr(texture->mlx_ptr, &texture->bpp,
 			&texture->size_line, &texture->endian);
 }
 
