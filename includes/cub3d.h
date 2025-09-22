@@ -76,10 +76,36 @@ typedef struct s_game
 {
 	t_program	program;
 	t_player	player;
+	char		**map;
 	t_texture	no_wall_texture;
 	t_texture	we_wall_texture;
 	t_texture	ea_wall_texture;
 	t_texture	so_wall_texture;
 }	t_game;
+
+typedef struct s_ray
+{
+	t_vector2D	dir;
+	t_vector2D	cell;
+	t_vector2D	delta_dist;
+	t_vector2D	side_dist;
+	t_vector2D	step;
+	int			side;
+	float		dist;
+}	t_ray;
+
+typedef struct s_wall_column
+{
+	int 		wall_height;
+	int			start;
+	int			end;
+	int			draw_start;
+	int			draw_end;
+	float		wall_x;
+	int			tex_x;
+	t_texture	*texture;
+	float		tex_y_step;
+	float		tex_y_pos;
+}	t_wall_column;
 
 #endif
