@@ -1,6 +1,8 @@
 #ifndef CUB3D_H
 # define CUB3D_H
 
+# include "map_parser/map_parser.h"
+
 # define WIDTH 1080
 # define HEIGHT 720
 
@@ -76,7 +78,7 @@ typedef struct s_game
 {
 	t_program	program;
 	t_player	player;
-	char		**map;
+	t_map		map;
 	t_texture	no_wall_texture;
 	t_texture	we_wall_texture;
 	t_texture	ea_wall_texture;

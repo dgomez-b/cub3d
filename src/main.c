@@ -1,4 +1,5 @@
 #include "cub3d.h"
+#include "map_parser/map_parser.h"
 #include "mlx/mlx.h"
 #include <math.h>
 #include <stdio.h>
@@ -48,14 +49,14 @@
 // {'1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'}
 // };
 
-void	freedom(void **ptr)
-{
-	if (*ptr)
-	{
-		free(*ptr);
-		*ptr = (void *)0;
-	}
-}
+// void	freedom(void **ptr)
+// {
+// 	if (*ptr)
+// 	{
+// 		free(*ptr);
+// 		*ptr = (void *)0;
+// 	}
+// }
 
 void	add_vector2d(t_vector2D *vec, float x, float y)
 {
@@ -64,11 +65,13 @@ void	add_vector2d(t_vector2D *vec, float x, float y)
 }
 
 // HAY QUE REDUCIR EL TAMAÑO DE ESTA FUNCIÓN O DIVIDIRLA EN MÁS FUNCIONES
-void	move_player(t_player *player)
+void	move_player(t_player *player, t_game *game)
 {
 	const float	speed = 0.012f;
-	const float	angle_speed = 0.006f;
+	const float	angle_speed = 0.008f;
+	t_vector2D	target_pos;
 
+	target_pos = player->position;
 	if (player->left_pressed == TRUE)
 		player->angle -= angle_speed;
 	else if (player->right_pressed == TRUE)
@@ -78,23 +81,26 @@ void	move_player(t_player *player)
 	else if (player->angle < 0)
 		player->angle = 2 * M_PI - player->angle;
 	if (player->w_pressed == TRUE)
-		add_vector2d(&player->position, (cos(player->angle) * speed),
+		add_vector2d(&target_pos, (cos(player->angle) * speed),
 			(sin(player->angle) * speed));
 	if (player->a_pressed == TRUE)
-		add_vector2d(&player->position, (sin(player->angle) * speed),
+		add_vector2d(&target_pos, (sin(player->angle) * speed),
 			-cos(player->angle) * speed);
 	if (player->s_pressed == TRUE)
-		add_vector2d(&player->position, -cos(player->angle) * speed,
+		add_vector2d(&target_pos, -cos(player->angle) * speed,
 			-sin(player->angle) * speed);
 	if (player->d_pressed == TRUE)
-		add_vector2d(&player->position, -sin(player->angle) * speed,
+		add_vector2d(&target_pos, -sin(player->angle) * speed,
 			(cos(player->angle) * speed));
+	if (target_pos.x >= 0 && target_pos.x < game->map.width && target_pos.y >= 0
+		&& target_pos.y < game->map.height)
+		player->position = target_pos;
 }
 
 void	init_player(t_player *player)
 {
-	player->position.x = 2.5f;
-	player->position.y = 2.5f;
+	player->position.x = 9.5f;
+	player->position.y = 1.5f;
 	player->angle = 3 * M_PI / 2;
 	player->w_pressed = FALSE;
 	player->a_pressed = FALSE;
@@ -206,7 +212,9 @@ void	ray_init(float angle, t_ray *ray, t_player *player)
 
 void	ray_route(t_ray *ray, t_game *game)
 {
-	while (game->map[(int)ray->cell.y][(int)ray->cell.x] != '1')
+	while (ray->cell.x >= 0 && ray->cell.x < game->map.width
+		&& ray->cell.y >= 0 && ray->cell.y < game->map.height
+		&& game->map.data[(int)ray->cell.y][(int)ray->cell.x] != '1')
 	{
 		if (ray->side_dist.x < ray->side_dist.y)
 		{
@@ -305,6 +313,9 @@ void	raycast(float angle, int column, t_player *player, t_game *game)
 
 	ray_init(angle, &ray, player);
 	ray_route(&ray, game);
+	if (ray.cell.x < 0 || ray.cell.x >= game->map.width
+		|| ray.cell.y < 0 || ray.cell.y >= game->map.height)
+		return ;
 	ray_distance_calc(angle, &ray, player);
 	get_wall_height(&wall, ray, game);
 	texture_calc(&wall, ray, player, game);
@@ -521,7 +532,7 @@ void	draw_player_vision(t_player *player, t_game *game)
 
 int	player_loop(t_game *game)
 {
-	move_player(&game->player);
+	move_player(&game->player, game);
 	clear_texture(&game->program.window.background);
 	draw_player_vision(&game->player, game);
 	return (0);
@@ -537,6 +548,8 @@ int	close_program(t_program *program)
 
 int	close_game(t_game *game)
 {
+	free_textures(&game->map);
+	free_map_data(&game->map);
 	// write(STDOUT_FILENO, "CIERRE DEL JUEGO\n", 17); // PARA DEBUG
 	mlx_destroy_image(game->program.mlx_ptr, game->no_wall_texture.mlx_ptr);
 	mlx_destroy_image(game->program.mlx_ptr, game->we_wall_texture.mlx_ptr);
@@ -581,37 +594,37 @@ void	load_texture(t_program *program, t_texture *texture, char *filename)
 			&texture->size_line, &texture->endian);
 }
 
-void	init_map(t_game *game)
-{
-	int		counter1;
-	int		counter2;
+// void	init_map(t_game *game)
+// {
+// 	int		counter1;
+// 	int		counter2;
 
-	game->map = malloc(sizeof(char *) * 40);
-	counter1 = 0;
-	while (counter1 < 40)
-	{
-		game->map[counter1] = malloc(sizeof(char) * 50);
-		counter2 = 0;
-		while (counter2 < 50)
-		{
-			if (counter1 == 0 || counter1 == 39
-				|| (counter2 == 0 || counter2 == 49))
-				game->map[counter1][counter2++] = '1';
-			else
-				game->map[counter1][counter2++] = '0';
-		}
-		counter1++;
-	}
-}
+// 	game->map = malloc(sizeof(char *) * 40);
+// 	counter1 = 0;
+// 	while (counter1 < game->map.height)
+// 	{
+// 		game->map.data[counter1] = malloc(sizeof(char) * 50);
+// 		counter2 = 0;
+// 		while (counter2 < game->map.width)
+// 		{
+// 			if (counter1 == 0 || counter1 == 39
+// 				|| (counter2 == 0 || counter2 == 49))
+// 				game->map.data[counter1][counter2++] = '1';
+// 			else
+// 				game->map.data[counter1][counter2++] = '0';
+// 		}
+// 		counter1++;
+// 	}
+// }
 
 void	init_game(t_game *game)
 {
 	init_player(&game->player);
 	init_program(&game->program);
-	load_texture(&game->program, &game->no_wall_texture, "media/stone.xpm");
-	load_texture(&game->program, &game->we_wall_texture, "media/wall.xpm");
-	load_texture(&game->program, &game->ea_wall_texture, "media/wall.xpm");
-	load_texture(&game->program, &game->so_wall_texture, "media/stone.xpm");
+	load_texture(&game->program, &game->no_wall_texture, game->map.no_wall_texture);
+	load_texture(&game->program, &game->we_wall_texture, game->map.we_wall_texture);
+	load_texture(&game->program, &game->ea_wall_texture, game->map.ea_wall_texture);
+	load_texture(&game->program, &game->so_wall_texture, game->map.so_wall_texture);
 	mlx_hook(game->program.window.mlx_ptr, 2, 1L << 0, key_press,
 			&game->player);
 	mlx_hook(game->program.window.mlx_ptr, 3, 1L << 1, key_release,
@@ -624,7 +637,8 @@ int	main(void)
 {
 	t_game	game;
 
-	init_map(&game);
+	// init_map(&game);
+	map_parser("media/maps/map.map", &game.map);
 	init_game(&game);
 	mlx_loop(game.program.mlx_ptr);
 	return (0);

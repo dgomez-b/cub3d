@@ -3,7 +3,19 @@ INC			=	./includes/
 LIBS		=	./libs/
 BIN			=	./.bin/
 SRC			=	./src/
-SRCS		=	main.c
+SRCS		=	main.c \
+				map_parser/gnl/get_next_line.c \
+				map_parser/gnl/get_next_line_utils.c \
+				map_parser/utils/ft_strlcpy.c \
+				map_parser/utils/ft_strlen.c \
+				map_parser/utils/freedom.c \
+				map_parser/utils/ft_bzero.c \
+				map_parser/utils/ft_split.c \
+				map_parser/utils/ft_memset.c \
+				map_parser/utils/ft_calloc.c \
+				map_parser/utils/ft_strdup.c \
+				map_parser/utils/ft_atoi.c \
+				map_parser/map_parser.c
 
 OBJS		=	$(addprefix $(BIN), $(SRCS:.c=.o))
 MLX			=	$(LIBS)mlx/libmlx.a
