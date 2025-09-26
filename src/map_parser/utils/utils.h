@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 # define UTILS_H
 
-#include <string.h>
+# include <string.h>
 
 size_t	ft_strlen(const char *s);
 char	**ft_split(const char *s, char c);

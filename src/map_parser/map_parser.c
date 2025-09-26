@@ -14,17 +14,18 @@ void	free_textures(t_map *map)
 	freedom((void **)&map->ea_wall_texture);
 }
 
-void	texture_error(t_map *map, char *line)
+void	texture_error(t_map *map, char *line, int fd)
 {
 	write(STDOUT_FILENO, "Invalid texture ", 16);
 	write(STDOUT_FILENO, line, ft_strlen(line));
 	write(STDOUT_FILENO, "\n", 1);
 	freedom((void **)&line);
+	close(fd);
 	free_textures(map);
 	exit (1);
 }
 
-void	store_texture(t_map *map, char *line)
+void	store_texture(t_map *map, char *line, int fd)
 {
 	char	**texture;
 	int		counter;
@@ -38,21 +39,22 @@ void	store_texture(t_map *map, char *line)
 	else if (line[0] == 'E' && line[1] == 'A' && *map->ea_wall_texture == '\0')
 		texture = &map->ea_wall_texture;
 	else
-		texture_error(map, line);
+		texture_error(map, line, fd);
 	counter = 2;
 	while (line[counter] == ' ')
 		counter++;
 	*texture = ft_strdup(line + counter);
 	(*texture)[ft_strlen(*texture) - 1] = '\0';
 	if (!*texture)
-		texture_error(map, line);
+		texture_error(map, line, fd);
 }
 
-void	color_error(t_map *map, char *line)
+void	color_error(t_map *map, char *line, int fd)
 {
 	write(STDOUT_FILENO, "Invalid color ", 14);
 	write(STDOUT_FILENO, line, ft_strlen(line));
 	write(STDOUT_FILENO, "\n", 1);
+	close(fd);
 	freedom((void **)&line);
 	free_textures(map);
 	exit (1);
@@ -85,7 +87,7 @@ void	line_to_rgb(char *line, int (*rgb)[])
 	free_mat((void **)crgb);
 }
 
-void	store_color(t_map *map, char *line)
+void	store_color(t_map *map, char *line, int fd)
 {
 	int		*color;
 	int		rgb[3];
@@ -96,14 +98,14 @@ void	store_color(t_map *map, char *line)
 	else if (*line == 'C' && map->ceil == -1)
 		color = &map->ceil;
 	else
-		color_error(map, line);
+		color_error(map, line, fd);
 	counter = 1;
 	while (line[counter] == ' ')
 		counter++;
 	line_to_rgb(line + counter, &rgb);
 	if (rgb[0] < 0 || rgb[0] > 255 || rgb[1] < 0 || rgb[1] > 255 || rgb[0] < 0
 		|| rgb[0] > 255)
-		color_error(map, line);
+		color_error(map, line, fd);
 	*color = ((00 & 0xFF) << 24) | ((rgb[0] & 0xFF) << 16)
 		| ((rgb[1] & 0xFF) << 8) | (rgb[2] & 0xFF);
 }
@@ -147,9 +149,24 @@ void	free_map_data(t_map *map)
 	freedom((void **)&map->data);
 }
 
+void	map_read_error(t_map *map)
+{
+	write(STDOUT_FILENO, "The map couldn't be readed\n", 27);
+	free_textures(map);
+	exit (1);
+}
+
 void	map_error(t_map *map)
 {
 	write(STDOUT_FILENO, "Map resize failed\n", 18);
+	free_textures(map);
+	free_map_data(map);
+	exit (1);
+}
+
+void	invalid_map(t_map *map)
+{
+	write(STDOUT_FILENO, "Invalid map\n", 12);
 	free_textures(map);
 	free_map_data(map);
 	exit (1);
@@ -169,7 +186,7 @@ void	map_resize(t_map *map)
 			map_error(map);
 		ft_memset(line, ' ', map->width);
 		line_end = ft_strlcpy(line, map->data[counter],
-			ft_strlen(map->data[counter])) - 1;
+				ft_strlen(map->data[counter])) - 1;
 		if (line_end < map->width)
 			line[line_end] = ' ';
 		freedom((void **)(map->data + counter));
@@ -209,13 +226,14 @@ void	store_textures(int fd, t_map *map)
 		line = get_next_line(fd);
 		if (!line)
 		{
+			close(fd);
 			write(STDOUT_FILENO, "Invalid file or read error\n", 27);
 			free_textures(map);
 			exit (1);
 		}
 		if (*line != '\n')
 		{
-			store_texture(map, line);
+			store_texture(map, line, fd);
 			counter++;
 		}
 		freedom((void **)&line);
@@ -233,30 +251,65 @@ void	store_colors(int fd, t_map *map)
 		line = get_next_line(fd);
 		if (!line)
 		{
+			close(fd);
 			write(STDOUT_FILENO, "Invalid file or read error\n", 27);
 			free_textures(map);
 			exit (1);
 		}
 		if (*line != '\n')
 		{
-			store_color(map, line);
+			store_color(map, line, fd);
 			counter++;
 		}
 		freedom((void **)&line);
 	}
 }
 
+int	map_check(t_map *map)
+{
+	int	line_counter;
+	int	column_counter;
+
+	line_counter = 0;
+	while (line_counter < map->height)
+	{
+		column_counter = 0;
+		while (column_counter < map->width)
+		{
+			if ((line_counter < map->height - 1 && line_counter > 0
+					&& column_counter > 0 && column_counter < map->width - 1
+					&& map->data[line_counter][column_counter] == '0'
+				&& (map->data[line_counter][column_counter - 1] == ' '
+				|| map->data[line_counter][column_counter + 1] == ' '
+				|| map->data[line_counter + 1][column_counter] == ' '
+				|| map->data[line_counter - 1][column_counter] == ' '))
+				|| ((line_counter == map->height - 1 || line_counter == 0
+					|| column_counter == map->width - 1 || column_counter == 0)
+					&& map->data[line_counter][column_counter] == '0'))
+				return (1);
+			column_counter++;
+		}
+		line_counter++;
+	}
+	return (0);
+}
+
 void	map_parser(char *map_path, t_map *map)
 {
 	int		fd;
+	int		counter;
 
 	map_init(map);
 	fd = open(map_path, O_RDONLY);
 	store_textures(fd, map);
 	store_colors(fd, map);
 	store_map_data(fd, map);
-	map_resize(map);
 	close(fd);
+	if (!map->data)
+		map_read_error(map);
+	map_resize(map);
+	if (map_check(map) == 1)
+		invalid_map(map);
 	printf("no -> %s\n", map->no_wall_texture);
 	printf("we -> %s\n", map->we_wall_texture);
 	printf("ea -> %s\n", map->ea_wall_texture);
@@ -264,13 +317,7 @@ void	map_parser(char *map_path, t_map *map)
 	printf("FLOOR -> 0x%X\n", map->floor);
 	printf("FLOOR -> 0x%X\n", map->ceil);
 	printf("\n");
-	for (int counter = 0; counter < map->height; counter++)
-		printf("%s\n", map->data[counter]);
-	// for (int i = 0; i < map->height; i++)
-	// {
-	// 	printf("%s\n", map->data[i]);
-	// 	freedom((void **)(map->data + i));
-	// }
-	// freedom((void **)map->data);
-	// free_textures(map);
+	counter = 0;
+	while (counter < map->height)
+		printf("%s\n", map->data[counter++]);
 }
