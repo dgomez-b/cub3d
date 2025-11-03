@@ -1,21 +1,29 @@
-NAME		=	cub3d
+NAME		=	cub3D
 INC			=	./includes/
 LIBS		=	./libs/
 BIN			=	./.bin/
 SRC			=	./src/
 SRCS		=	main.c \
-				map_parser/gnl/get_next_line.c \
-				map_parser/gnl/get_next_line_utils.c \
-				map_parser/utils/ft_strlcpy.c \
-				map_parser/utils/ft_strlen.c \
-				map_parser/utils/freedom.c \
-				map_parser/utils/ft_bzero.c \
-				map_parser/utils/ft_split.c \
-				map_parser/utils/ft_memset.c \
-				map_parser/utils/ft_calloc.c \
-				map_parser/utils/ft_strdup.c \
-				map_parser/utils/ft_atoi.c \
-				map_parser/map_parser.c
+				gnl/get_next_line.c \
+				gnl/get_next_line_utils.c \
+				utils/ft_strlcpy.c \
+				utils/ft_strlen.c \
+				utils/freedom.c \
+				utils/ft_bzero.c \
+				utils/ft_split.c \
+				utils/ft_memset.c \
+				utils/ft_calloc.c \
+				utils/ft_strdup.c \
+				utils/ft_atoi.c \
+				map_parser/map_parser.c \
+				map_parser/map_parser_aux.c \
+				map_parser/textures.c \
+				map_parser/colors.c \
+				aux_main/aux_main.c \
+				aux_main/aux_mainII.c \
+				aux_main/aux_mainIII.c \
+				aux_main/exit.c \
+				aux_main/player.c
 
 OBJS		=	$(addprefix $(BIN), $(SRCS:.c=.o))
 MLX			=	$(LIBS)mlx/libmlx.a
@@ -32,8 +40,11 @@ $(BIN)%.o	:	$(SRC)%.c
 				@ make -sC $(dir $@)
 
 $(NAME)		:	$(MLX) $(OBJS)
-				@ $(CC) $(CFLAGS) -o $@ $^ -L$(dir $(MLX)) -lmlx -framework \
-					OpenGL -framework AppKit
+				@ $(CC) $(CFLAGS) -o $@ $^ -L$(dir $(MLX)) -lmlx -lXext -lX11 -lm -lz
+
+# $(NAME)		:	$(MLX) $(OBJS)
+# 				@ $(CC) $(CFLAGS) -o $@ $^ -L$(dir $(MLX)) -lmlx -framework \
+# 					OpenGL -framework AppKit
 
 clean		:
 				@ rm -rfv $(BIN)

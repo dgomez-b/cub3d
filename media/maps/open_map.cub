@@ -1,0 +1,11 @@
+NO          ./media/textures/wall2.xpm
+SO ./media/textures/stone.xpm
+WE                           ./media/textures/eagle.xpm
+EA                      ./media/textures/wall.xpm
+
+F 70,130,180
+C 210,105,30
+
+111111
+100000
+111111
