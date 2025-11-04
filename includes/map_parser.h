@@ -44,10 +44,10 @@ void	color_error(t_map *map, char *line, int fd);
 void	free_mat(void **mat);
 void	line_to_rgb(char *line, int (*rgb)[]);
 void	store_color(t_map *map, char *line, int fd);
-void	store_colors(int fd, t_map *map);
 void	free_textures(t_map *map);
 void	texture_error(t_map *map, char *line, int fd);
 void	store_texture(t_map *map, char *line, int fd);
-void	store_textures(int fd, t_map *map);
+void	store_map_bg_data1(int fd, char *first_line, t_map *map);
+void	store_map_bg_data2(int fd, char *first_line, t_map *map);
 
 #endif

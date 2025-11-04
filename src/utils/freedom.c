@@ -14,7 +14,7 @@
 
 void	freedom(void **ptr)
 {
-	if (!*ptr)
+	if (!*ptr || !*ptr)
 		return ;
 	free(*ptr);
 	*ptr = (void *)0;

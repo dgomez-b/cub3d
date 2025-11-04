@@ -10,7 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "cub3d.h"
 #include "get_next_line.h"
 #include "map_parser.h"
 #include <stdio.h>
@@ -93,7 +92,8 @@ int	map_check(t_map *map)
 
 void	map_parser(char *map_path, t_map *map)
 {
-	int	fd;
+	int		fd;
+	char	*line;
 
 	map_init(map);
 	fd = open(map_path, O_RDONLY);
@@ -102,8 +102,12 @@ void	map_parser(char *map_path, t_map *map)
 		printf("There has been a problem opening the map.\n");
 		exit(0);
 	}
-	store_textures(fd, map);
-	store_colors(fd, map);
+	line = get_next_line(fd);
+	if (line && (*line == 'F' || *line == 'C'))
+		store_map_bg_data1(fd, line, map);
+	else
+		store_map_bg_data2(fd, line, map);
+	line = (void *)0;
 	store_map_data(fd, map);
 	close(fd);
 	if (!map->data)

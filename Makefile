@@ -17,6 +17,7 @@ SRCS		=	main.c \
 				utils/ft_atoi.c \
 				map_parser/map_parser.c \
 				map_parser/map_parser_aux.c \
+				map_parser/map_parser_aux2.c \
 				map_parser/textures.c \
 				map_parser/colors.c \
 				aux_main/aux_main.c \
