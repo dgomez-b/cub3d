@@ -12,9 +12,9 @@
 
 #include "cub3d.h"
 #include "map_parser.h"
-#include "mlx/mlx.h"
 #include "utils.h"
 #include <math.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -66,4 +66,28 @@ void	move_player(t_player *p, t_game *g)
 		&& tpos.y < g->map.height
 		&& g->map.data[(int)tpos.y][(int)tpos.x] != '1')
 		p->position = tpos;
+}
+
+void	check_texture_files_existance(t_game *game)
+{
+	int	texture_fds[4];
+
+	texture_fds[0] = open(game->map.no_wall_texture, O_RDONLY);
+	texture_fds[1] = open(game->map.so_wall_texture, O_RDONLY);
+	texture_fds[2] = open(game->map.ea_wall_texture, O_RDONLY);
+	texture_fds[3] = open(game->map.we_wall_texture, O_RDONLY);
+	if (texture_fds[0])
+		close(texture_fds[0]);
+	if (texture_fds[1])
+		close(texture_fds[1]);
+	if (texture_fds[2])
+		close(texture_fds[2]);
+	if (texture_fds[3])
+		close(texture_fds[3]);
+	if (texture_fds[0] == -1 || texture_fds[1] == -1 || texture_fds[2] == -1
+		|| texture_fds[3] == -1)
+	{
+		write(STDERR_FILENO, "Invalid texture\n", 16);
+		close_game(game);
+	}
 }

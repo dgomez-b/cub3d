@@ -48,8 +48,11 @@ int	player_loop(t_game *game)
 
 int	close_program(t_program *program)
 {
-	mlx_destroy_image(program->mlx_ptr, program->window.background.mlx_ptr);
-	mlx_destroy_window(program->mlx_ptr, program->window.mlx_ptr);
+	if (program->window.mlx_ptr != NULL)
+	{
+		mlx_destroy_image(program->mlx_ptr, program->window.background.mlx_ptr);
+		mlx_destroy_window(program->mlx_ptr, program->window.mlx_ptr);
+	}
 	exit (0);
 }
 
@@ -65,7 +68,8 @@ int	close_game(t_game *game)
 		mlx_destroy_image(game->program.mlx_ptr, game->ea_wall_texture.mlx_ptr);
 	if (game->so_wall_texture.mlx_ptr)
 		mlx_destroy_image(game->program.mlx_ptr, game->so_wall_texture.mlx_ptr);
-	close_program(&game->program);
+	if (game->program.mlx_ptr)
+		close_program(&game->program);
 	exit(0);
 }
 

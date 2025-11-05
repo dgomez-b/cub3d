@@ -43,7 +43,7 @@ void	store_texture(t_map *map, char *line, int fd)
 	char	**texture;
 	int		counter;
 
-	if (!line || line[2] != ' ')
+	if (!line || ft_strlen(line) <= 3 || line[2] != ' ')
 		texture_error(map, line, fd);
 	if (line[0] == 'N' && line[1] == 'O' && *map->no_wall_texture == '\0')
 		texture = &map->no_wall_texture;

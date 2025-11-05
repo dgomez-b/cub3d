@@ -14,7 +14,7 @@
 #include "map_parser.h"
 #include "mlx/mlx.h"
 #include "utils.h"
-#include <math.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -52,9 +52,7 @@ void	load_texture(t_game *game, t_texture *texture, char *filename)
 			&texture->width, &texture->height);
 	if (!texture->mlx_ptr)
 	{
-		write(STDERR_FILENO, "File \"", 6);
-		write(STDERR_FILENO, filename, ft_strlen(filename));
-		write(STDERR_FILENO, "\" does not exist.\n", 18);
+		write(STDERR_FILENO, "Texture couldn't be loaded\n", 27);
 		close_game(game);
 	}
 	texture->data = mlx_get_data_addr(texture->mlx_ptr, &texture->bpp,
@@ -63,6 +61,12 @@ void	load_texture(t_game *game, t_texture *texture, char *filename)
 
 void	init_game(t_game *game)
 {
+	game->program.mlx_ptr = NULL;
+	game->no_wall_texture.mlx_ptr = NULL;
+	game->so_wall_texture.mlx_ptr = NULL;
+	game->ea_wall_texture.mlx_ptr = NULL;
+	game->we_wall_texture.mlx_ptr = NULL;
+	check_texture_files_existance(game);
 	init_player(&game->player, &game->map);
 	init_program(&game->program);
 	load_texture(game, &game->no_wall_texture,

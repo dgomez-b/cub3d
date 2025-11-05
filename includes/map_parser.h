@@ -19,15 +19,13 @@ typedef struct s_map
 	int			width;
 	int			height;
 	int			floor;
+	int			floor_stored;
 	int			ceil;
+	int			ceil_stored;
 	char		*no_wall_texture;
-	int			no_wall_stored;
 	char		*we_wall_texture;
-	int			we_wall_stored;
 	char		*ea_wall_texture;
-	int			ea_wall_stored;
 	char		*so_wall_texture;
-	int			so_wall_stored;
 }	t_map;
 
 void	map_error(t_map *map);

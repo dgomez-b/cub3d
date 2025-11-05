@@ -27,15 +27,16 @@ SRCS		=	main.c \
 				aux_main/player.c
 
 OBJS		=	$(addprefix $(BIN), $(SRCS:.c=.o))
+DEPS		=	$(addprefix $(BIN), $(SRCS:.c=.d))
 MLX			=	$(LIBS)mlx/libmlx.a
 CC			=	gcc
-CFLAGS		=	-Wall -Wextra -Werror -g3
+CFLAGS		=	-Wall -Wextra -Werror -MMD -fsanitize=address
 
 all			:	$(NAME)
 
 $(BIN)%.o	:	$(SRC)%.c
 				@ mkdir -p $(dir $@)
-				@ $(CC) $(CFLAGS) -c -o $@ $^ -I$(INC) -I$(LIBS)
+				@ $(CC) $(CFLAGS) -c -o $@ $< -I$(INC) -I$(LIBS)
 
 %.a			:
 				@ make -sC $(dir $@)
@@ -57,3 +58,5 @@ fclean		:	clean
 re			:	fclean all
 
 .PHONY		:	all clean fclean re
+
+-include $(DEPS)

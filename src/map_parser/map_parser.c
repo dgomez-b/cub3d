@@ -57,6 +57,8 @@ void	map_init(t_map *map)
 	map->so_wall_texture = "\0";
 	map->floor = -1;
 	map->ceil = -1;
+	map->floor_stored = 0;
+	map->ceil_stored = 0;
 	map->width = 0;
 	map->height = 0;
 }
@@ -99,7 +101,7 @@ void	map_parser(char *map_path, t_map *map)
 	fd = open(map_path, O_RDONLY);
 	if (fd == -1)
 	{
-		printf("There has been a problem opening the map.\n");
+		printf("There has been a problem opening the map\n");
 		exit(0);
 	}
 	line = get_next_line(fd);
