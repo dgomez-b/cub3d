@@ -52,9 +52,9 @@ void	init_player(t_player *player, t_map	*map)
 		player->angle = 3 * M_PI / 2;
 	else if (map->data[(int)player->position.y][(int)player->position.x] == 'S')
 		player->angle = M_PI / 2;
-	else if (map->data[(int)player->position.y][(int)player->position.x] == 'S')
+	else if (map->data[(int)player->position.y][(int)player->position.x] == 'W')
 		player->angle = M_PI;
-	else if (map->data[(int)player->position.y][(int)player->position.x] == 'S')
+	else
 		player->angle = 0;
 	player->w_pressed = FALSE;
 	player->a_pressed = FALSE;
