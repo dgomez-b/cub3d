@@ -59,8 +59,8 @@ void	move_player(t_player *p, t_game *g)
 		p->angle += aspeed;
 	if (p->angle >= (float)(2 * M_PI))
 		p->angle -= (float)(2 * M_PI);
-	else if (p->angle < 0)
-		p->angle = 2 * M_PI - p->angle;
+	else if (p->angle <= 0)
+		p->angle += (float)(2 * M_PI);
 	move_dir(&tpos, p->angle, speed, p);
 	if (tpos.x >= 0 && tpos.x < g->map.width && tpos.y >= 0
 		&& tpos.y < g->map.height
