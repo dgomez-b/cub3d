@@ -52,6 +52,8 @@ int	close_program(t_program *program)
 	{
 		mlx_destroy_image(program->mlx_ptr, program->window.background.mlx_ptr);
 		mlx_destroy_window(program->mlx_ptr, program->window.mlx_ptr);
+		mlx_destroy_display(program->mlx_ptr);
+		free(program->mlx_ptr);
 	}
 	exit (0);
 }
