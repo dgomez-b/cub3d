@@ -75,29 +75,29 @@ void	invalid_map(t_map *map)
 
 int	map_check2(t_map *map)
 {
-	t_bool		found_player;
-	int			x;
-	int			y;
+	int	found_player;
+	int	x;
+	int	y;
 
-	found_player = FALSE;
+	found_player = 0;
 	y = -1;
 	while (++y < map->height)
 	{
-		x = 0;
-		while (x < map->width)
+		x = -1;
+		while (++x < map->width)
 		{
 			if (map->data[y][x] == 'N' || map->data[y][x] == 'S'
 				|| map->data[y][x] == 'W' || map->data[y][x] == 'E')
 			{
 				if (!found_player)
-					found_player = TRUE;
+					found_player = 1;
 				else
 					return (1);
 			}
-			x++;
+			else if (map->data[y][x] != '0' && map->data[y][x] != '1'
+				&& map->data[y][x] != ' ')
+				return (1);
 		}
 	}
-	if (found_player == FALSE)
-		return (1);
-	return (0);
+	return ((found_player + 1) % 2);
 }
